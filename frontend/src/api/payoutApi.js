@@ -17,7 +17,7 @@ export const createPayout = async (amount) => {
 
 export const getPayouts = async () => {
   try {
-    const res = await fetch("http://localhost:8000/api/v1/payouts/");
+    const res = await fetch(`${BASE_URL}/payouts/`); // ✅ FIXED
 
     if (!res.ok) throw new Error("Failed");
 
@@ -30,13 +30,13 @@ export const getPayouts = async () => {
 
 export const getBalance = async () => {
   try {
-    const res = await fetch("http://localhost:8000/api/v1/balance/1/");
+    const res = await fetch(`${BASE_URL}/balance/1/`); // ✅ FIXED
 
     if (!res.ok) throw new Error("Failed");
 
     const data = await res.json();
 
-    return data.balance_paise;   // ✅ return NUMBER directly
+    return data.balance_paise;
   } catch (err) {
     console.error("Balance error:", err);
     return 0;
