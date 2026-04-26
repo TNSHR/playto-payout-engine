@@ -5,6 +5,28 @@ from django.db.models import Sum
 from apps.merchants.models import Merchant
 from apps.ledger.models import LedgerEntry
 from .serializers import BalanceSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from apps.merchants.models import Merchant
+from apps.ledger.models import LedgerEntry
+
+
+class SeedBalanceView(APIView):
+    def post(self, request):
+        m = Merchant.objects.first()
+
+        if not m:
+            m = Merchant.objects.create(name="Default Merchant")
+
+        # only add if no balance exists
+        if not m.ledger_entries.exists():
+            LedgerEntry.objects.create(
+                merchant=m,
+                amount_paise=20000,
+                entry_type="credit"
+            )
+
+        return Response({"message": "Seeded successfully"})
 
 
 class BalanceView(APIView):
