@@ -95,6 +95,7 @@ if os.getenv("DB_NAME"):  # production
             'PASSWORD': os.getenv("DB_PASSWORD"),
             'HOST': os.getenv("DB_HOST"),
             'PORT': os.getenv("DB_PORT"),
+           
         }
     }
 else:  # local development
@@ -149,7 +150,9 @@ STATIC_URL = 'static/'
 # CELERY CONFIGURATION
 # =========================
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+SECRET_KEY = os.getenv("SECRET_KEY"),
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
