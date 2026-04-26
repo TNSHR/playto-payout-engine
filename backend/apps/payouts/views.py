@@ -98,7 +98,7 @@ class PayoutView(APIView):
             })
 
         # 🚀 async processing (outside transaction)
-        process_payout.delay(payout.id)
+        process_payout(payout.id)
 
         return Response({
             "message": "Payout created",
