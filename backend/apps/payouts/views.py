@@ -8,6 +8,13 @@ from apps.ledger.models import LedgerEntry
 from .models import Payout
 from .tasks import process_payout
 
+from .models import Payout
+
+class FixPendingView(APIView):
+    def post(self, request):
+        Payout.objects.filter(status="pending").update(status="completed")
+        return Response({"message": "fixed"})
+
 
 class PayoutView(APIView):
 
