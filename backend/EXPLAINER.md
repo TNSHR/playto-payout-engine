@@ -149,23 +149,7 @@ with transaction.atomic():
 
 ---
 
-## 5. Retry Logic
 
-### Implementation
-
-```python
-@shared_task(bind=True, max_retries=3)
-def process_payout(self, payout_id):
-    raise self.retry(exc=e, countdown=5)
-```
-
-### Behavior
-
-* Retries failed payouts up to 3 times
-* Handles temporary failures (network, bank delays)
-* Final failure triggers refund
-
----
 
 ## 6. The AI Audit
 
@@ -221,10 +205,8 @@ except IntegrityError:
 ### Architecture Overview
 
 ```
-API → DB (transaction + locking)
-    → Redis (queue)
-    → Celery worker
-    → DB updates
+API → DB (transaction + locking + processing)
+    → immediate status update
 ```
 
 ---
@@ -238,3 +220,9 @@ This system prioritizes:
 * Auditability and financial safety
 
 The implementation is intentionally minimal but focuses on the core problems of real payment systems: concurrency, idempotency, and data integrity.
+
+The system was initially designed with asynchronous processing using Celery and Redis.
+
+However, due to deployment limitations on Render’s free tier (no background workers), the payout processing was switched to synchronous execution.
+
+The architecture still supports async scaling, and the Celery-based design is preserved conceptually.
