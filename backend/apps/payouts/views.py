@@ -11,14 +11,42 @@ from .tasks import process_payout
 
 class PayoutView(APIView):
 
+    # ✅ GET → list payouts (for frontend history)
+    def get(self, request):
+        payouts = Payout.objects.all().order_by("-id")
+
+        data = [
+            {
+                "id": p.id,
+                "amount_paise": p.amount_paise,
+                "status": p.status,
+            }
+            for p in payouts
+        ]
+
+        return Response(data)
+
+    # ✅ POST → create payout
     def post(self, request):
         merchant_id = request.data.get("merchant_id")
         amount = request.data.get("amount_paise")
-
         idempotency_key = request.headers.get("Idempotency-Key")
 
         if not idempotency_key:
             return Response({"error": "Idempotency-Key required"}, status=400)
+
+        # ✅ FIRST CHECK (fast idempotency check)
+        existing = Payout.objects.filter(
+            merchant_id=merchant_id,
+            idempotency_key=idempotency_key
+        ).first()
+
+        if existing:
+            return Response({
+                "message": "Already processed",
+                "payout_id": existing.id,
+                "status": existing.status
+            })
 
         try:
             with transaction.atomic():
@@ -26,7 +54,7 @@ class PayoutView(APIView):
                 # 🔒 LOCK merchant
                 merchant = Merchant.objects.select_for_update().get(id=merchant_id)
 
-                # 💰 balance
+                # 💰 balance calculation
                 credits = merchant.ledger_entries.filter(
                     entry_type="credit"
                 ).aggregate(total=Sum("amount_paise"))["total"] or 0
@@ -40,7 +68,7 @@ class PayoutView(APIView):
                 if balance < amount:
                     return Response({"error": "Insufficient balance"}, status=400)
 
-                # 💸 Try create payout
+                # 💸 create payout
                 payout = Payout.objects.create(
                     merchant=merchant,
                     amount_paise=amount,
@@ -57,19 +85,19 @@ class PayoutView(APIView):
                 )
 
         except IntegrityError:
-            # ✅ NEW TRANSACTION (safe)
+            # ✅ race condition handling
             payout = Payout.objects.get(
                 merchant_id=merchant_id,
                 idempotency_key=idempotency_key
             )
 
             return Response({
-                "message": "Already processed",
+                "message": "Already processed (race handled)",
                 "payout_id": payout.id,
                 "status": payout.status
             })
 
-        # 🚀 trigger worker OUTSIDE transaction
+        # 🚀 async processing (outside transaction)
         process_payout.delay(payout.id)
 
         return Response({
