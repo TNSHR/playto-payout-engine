@@ -7,46 +7,53 @@ export default function Dashboard() {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
- const loadData = async () => {
-  const balance = await getBalance();   // ✅ now number
-  const payoutData = await getPayouts();
+  const loadData = async () => {
+    setLoading(true);
 
-  setBalance(balance || 0);             // ✅ correct
-  setPayouts(payoutData || []);
-};
+    const balance = await getBalance();
+    const payoutData = await getPayouts();
+
+    setBalance(balance || 0);
+    setPayouts(payoutData || []);
+
+    setLoading(false);
+  };
 
   useEffect(() => {
     loadData();
   }, []);
 
- const handlePayout = async () => {
-  if (!amount) return;
+  const handlePayout = async () => {
+    if (!amount) return;
 
-  try {
-    const res = await createPayout(Number(amount));
+    setLoading(true); // ✅ ADDED (fix eslint warning)
 
-    if (res?.error) {
-      alert(res.error);
-      return;
+    try {
+      const res = await createPayout(Number(amount));
+
+      if (res?.error) {
+        alert(res.error);
+        setLoading(false);
+        return;
+      }
+
+      setAmount("");
+      await loadData();
+    } catch (err) {
+      console.error("Payout error:", err);
+      alert("Something went wrong!");
     }
 
-    setAmount("");
-    loadData();
-  } catch (err) {
-    console.error("Payout error:", err);
-    alert("Something went wrong!");
-  }
-};
+    setLoading(false); // ✅ ADDED
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <h1 className="text-3xl font-bold mb-6 text-gray-800">
           💸 Payout Dashboard
         </h1>
 
-        {/* Balance Card */}
         <div className="bg-white shadow-md rounded-2xl p-6 mb-6">
           <p className="text-gray-500">Available Balance</p>
           <h2 className="text-3xl font-bold text-green-600 mt-2">
@@ -54,7 +61,6 @@ export default function Dashboard() {
           </h2>
         </div>
 
-        {/* Payout Form */}
         <div className="bg-white shadow-md rounded-2xl p-6 mb-6">
           <h3 className="font-semibold mb-3">Request Payout</h3>
 
@@ -77,7 +83,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* History */}
         <div className="bg-white shadow-md rounded-2xl p-6">
           <h3 className="font-semibold mb-3">Payout History</h3>
 
